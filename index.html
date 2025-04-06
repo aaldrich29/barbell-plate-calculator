@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="Interactive barbell weight plate calculator with editable inventory, visual bar loading, and a fun 90s pop theme. Calculate plates needed or total weight.">
+    <meta name="keywords" content="barbell calculator, weight plate calculator, lifting, weightlifting, gym calculator, plate math, barbell math, 90s theme">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbell Plate Calc! - 90s Pop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Roboto+Mono&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none;
+            background-color: #ffffff; /* White background */
+            color: #000000; /* Black text */
+        }
+        /* Monospace font for numbers */
+        .font-mono {
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        /* Base plate style on bar - Rounded Rect */
+        .plate {
+            border: 2px solid #000000; /* Thick Black border */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #000000; /* Black text */
+            border-radius: 6px; /* Slightly rounded */
+            margin: 0 2px;
+            flex-shrink: 0;
+            box-shadow: none;
+            text-shadow: none;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 0.75rem; /* Small size */
+            padding: 1px 0;
+            cursor: pointer;
+             image-rendering: auto;
+             line-height: 1.1;
+             transition: transform 0.1s ease-out;
+        }
+        .plate:hover {
+             transform: scale(1.03);
+             filter: none; /* No brightness change */
+        }
+
+        /* Barbell container */
+        .barbell {
+            display: flex;
+            align-items: center;
+            height: 120px;
+            margin: 20px 0;
+            overflow-x: auto;
+            padding: 5px;
+            background-color: #e5e7eb; /* Light Gray bg */
+            border-radius: 0; /* Sharp corners */
+            border: 2px solid #000000; /* Black border */
+        }
+        /* Barbell sleeves - Solid Gray */
+        .bar-sleeve {
+            display: flex;
+            align-items: center;
+            flex-direction: row-reverse;
+            height: 100%;
+            min-width: 140px;
+            background-color: #9ca3af; /* Medium Gray */
+            border-left: 4px solid #4b5563; /* Darker gray collar/cap */
+            border-right: 4px solid #4b5563;
+            padding: 0 4px;
+            border-radius: 0;
+            justify-content: flex-end; /* Stack plates outwards */
+            box-shadow: none;
+        }
+        .bar-sleeve.left {
+             flex-direction: row;
+             border-left: 4px solid #4b5563;
+             border-right: 4px solid #4b5563;
+        }
+        /* Barbell handle - Solid Gray */
+        .bar-handle {
+            height: 28px;
+            background-color: #9ca3af; /* Medium Gray */
+            flex-grow: 1;
+            min-width: 80px;
+            box-shadow: none;
+            border-radius: 0;
+            border-top: 2px solid #d1d5db; /* Subtle highlight */
+            border-bottom: 2px solid #6b7280; /* Subtle shadow */
+        }
+        .bar-handle::before { display: none; }
+
+
+        /* Plate specific styles - 90s Pop Colors - Includes H/W */
+        .plate-45 { background-color: #8b5cf6; color: white; height: 110px; width: 24px; } /* Purple (white text) */
+        .plate-25 { background-color: #ec4899; color: white; height: 90px; width: 20px; } /* Pink (white text) */
+        .plate-10 { background-color: #facc15; height: 75px; width: 16px; } /* Yellow */
+        .plate-5  { background-color: #22d3ee; height: 60px; width: 12px; } /* Cyan */
+        .plate-2-5{ background-color: #a3e635; height: 50px; width: 10px; } /* Lime */
+
+        /* Inventory plate visuals - Circles with black outline */
+        .inventory-plate-visual {
+            border: 2px solid #000000; /* Black border */
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: black; /* Black text */
+            border-radius: 50%; /* Circle */
+            margin: 0 auto 4px auto; flex-shrink: 0;
+            box-shadow: none;
+            text-shadow: none;
+            width: 50px; height: 50px;
+            transition: none;
+            font-size: 1.1rem; /* Larger number */
+        }
+        /* Adjust text color for specific plate bg if needed */
+        .inventory-plate-visual.plate-45,
+        .inventory-plate-visual.plate-25 { color: white; }
+
+        .inventory-plate { cursor: pointer; transition: none; width: 5rem; /* w-20 */ }
+        .inventory-plate:hover:not(.disabled) .inventory-plate-visual {
+            transform: scale(1.05); /* Simple scale hover */
+            filter: none;
+        }
+        .inventory-plate.disabled .inventory-plate-visual { opacity: 0.5; border-color: #9ca3af; } /* Gray border when disabled */
+        .inventory-plate.disabled { cursor: not-allowed; }
+
+        /* Modal styles - Light Theme */
+        .modal { background-color: rgba(0,0,0,0.6); display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; }
+        .modal-content { background-color: #ffffff; border: 4px solid #000000; color: #000000; margin: 10% auto; padding: 25px; width: 90%; max-width: 550px; border-radius: 0; box-shadow: 6px 6px 0px #000000; } /* Offset shadow */
+        .close-button { color: #000000; float: right; font-size: 24px; font-weight: bold; line-height: 1; transition: none; }
+        .close-button:hover, .close-button:focus { color: #ec4899; text-decoration: none; cursor: pointer; } /* Pink hover */
+        .modal-message { color: #ef4444; } /* Red error */
+        .modal-message.text-green-400 { color: #16a34a; } /* Green success */
+
+        /* Scrollbar - system default */
+        #modal-inventory-list::-webkit-scrollbar { }
+        #modal-inventory-list::-webkit-scrollbar-track { }
+        #modal-inventory-list::-webkit-scrollbar-thumb { }
+        #modal-inventory-list::-webkit-scrollbar-thumb:hover { }
+
+        /* General text colors & fonts */
+        label { color: #8b5cf6; font-weight: bold; } /* Purple labels */
+        h1, h2, h3, h4 { color: #000000; font-weight: 900; } /* Black, very bold headings */
+        p { color: #374151; line-height: 1.5; } /* Dark gray text */
+        p.text-xs { font-size: 0.8rem; }
+        p.text-gray-500 { color: #6b7280; }
+        #calculated-weight-info { color: #06b6d4; font-weight: bold; } /* Cyan info text */
+        #message-area { color: #ef4444; } /* Red error messages */
+        #message-area.text-green-400 { color: #16a34a; } /* Green success messages */
+
+        /* Button base style - 90s Pop */
+        .btn {
+            font-family: 'Inter', sans-serif;
+            border-radius: 0; /* Sharp corners */
+            border: 2px solid #000000; /* Black border */
+            padding-left: 1rem; padding-right: 1rem;
+            padding-top: 0.5rem; padding-bottom: 0.5rem;
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 700; /* Bold */
+            color: #000000; /* Black text */
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.1s linear;
+            box-shadow: 3px 3px 0px #000000; /* Offset shadow */
+        }
+        .btn:active {
+            transform: translate(2px, 2px); /* Push effect */
+            box-shadow: 1px 1px 0px #000000; /* Reduce shadow */
+        }
+        /* Specific Button Styles */
+        .btn-primary { background-color: #eab308; } /* Yellow */
+        .btn-primary:hover { background-color: #fde047; } /* Lighter yellow */
+        .btn-secondary { background-color: #d1d5db; } /* Light Gray */
+        .btn-secondary:hover { background-color: #e5e7eb; }
+        .btn-danger { background-color: #ef4444; color: white; } /* Red */
+        .btn-danger:hover { background-color: #f87171; }
+        .btn-success { background-color: #a3e635; } /* Lime */
+        .btn-success:hover { background-color: #bef264; }
+        .btn-info { background-color: #22d3ee; } /* Cyan */
+        .btn-info:hover { background-color: #67e8f9; }
+
+        /* Input base style */
+        .input-base {
+            font-family: 'Roboto Mono', monospace;
+            border: 2px solid #000000; /* Black border */
+            background-color: #ffffff; /* White bg */
+            color: #000000; /* Black text */
+            border-radius: 0; /* Sharp corners */
+            padding-left: 0.75rem; padding-right: 0.75rem;
+            padding-top: 0.5rem; padding-bottom: 0.5rem;
+            font-size: 1rem;
+            box-shadow: none;
+        }
+        .input-base::placeholder { color: #9ca3af; }
+        .input-base:focus {
+            outline: none;
+            border-color: #8b5cf6; /* Purple focus border */
+            box-shadow: 0 0 0 2px #8b5cf6; /* Purple focus ring */
+        }
+
+    </style>
+</head>
+<body class="bg-white text-black p-4 md:p-8 min-h-screen flex flex-col items-center">
+
+    <div class="w-full max-w-4xl bg-white p-6 md:p-8 border-4 border-black rounded-none shadow-[8px_8px_0px_#8b5cf6]"> <h1 class="text-3xl md:text-4xl font-black text-center text-black mb-10 tracking-tight uppercase">
+            Barbell Plate Calc!
+        </h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+            <div>
+                <label for="target-weight" class="block text-sm font-bold text-purple-600 mb-2 uppercase tracking-wider">Target Weight (lbs):</label>
+                <div class="flex">
+                    <input type="number" id="target-weight" name="target-weight" class="input-base flex-1 block w-full" placeholder="e.g., 225">
+                    <button id="calculate-plates-btn" class="btn btn-primary ml-1">
+                        Calculate!
+                    </button>
+                </div>
+                 <p id="calculated-weight-info" class="font-mono text-sm text-cyan-600 mt-2 min-h-[1.25rem] font-bold"></p>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-purple-600 mb-2 uppercase tracking-wider">Total Weight:</label>
+                <div id="total-weight-display" class="input-base mt-1 block w-full text-center text-lg font-bold">
+                    </div>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h2 class="text-2xl font-black text-center text-black mb-4 uppercase tracking-wider">Barbell</h2>
+            <div id="barbell" class="barbell">
+                <div id="bar-sleeve-left" class="bar-sleeve left"></div>
+                <div class="bar-handle"></div>
+                <div id="bar-sleeve-right" class="bar-sleeve right"></div>
+            </div>
+             <p class="text-xs text-center text-gray-600 mt-3">Click plates on bar to remove.</p>
+        </div>
+
+         <div class="text-center mb-10">
+             <button id="reset-bar-btn" class="btn btn-danger px-6">
+                 Reset Bar
+             </button>
+         </div>
+
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-black uppercase tracking-wider">Available Plates</h2>
+                <button id="edit-inventory-btn" class="btn btn-secondary text-xs px-3">
+                    Edit Inventory
+                </button>
+            </div>
+            <div id="inventory-display" class="flex flex-wrap gap-4 sm:gap-6 justify-center p-5 border-2 border-black bg-gray-100 min-h-[95px]"></div>
+             <p class="text-xs text-center text-gray-600 mt-3">Click plates above to add.</p>
+        </div>
+
+        <div id="message-area" class="font-mono text-center font-bold min-h-[1.5rem] mb-4 text-red-600 text-base"></div>
+
+    </div>
+
+    <div id="inventory-modal" class="modal">
+        <div class="modal-content">
+            <span id="close-modal-btn" class="close-button">X</span>
+            <h3 class="text-2xl font-black mb-6 text-black uppercase">Edit Inventory</h3>
+            <div class="mb-4">
+                <label for="bar-weight-input" class="block text-sm font-bold text-purple-600 mb-2 uppercase tracking-wider">Bar Weight (lbs):</label>
+                <input type="number" id="bar-weight-input" name="bar-weight-input" class="input-base block w-full">
+            </div>
+            <h4 class="text-lg font-bold mb-2 text-black uppercase tracking-wider">Plates (Total Pairs)</h4>
+            <div id="modal-inventory-list" class="space-y-2 max-h-60 overflow-y-auto border-2 border-black p-3 bg-gray-100 mb-5"></div>
+            <div class="mt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+                 <button id="add-plate-type-btn" class="btn btn-success w-full sm:w-auto">Add Plate Type</button>
+                <div class="w-full sm:w-auto flex justify-end gap-3">
+                     <button id="save-inventory-btn" class="btn btn-info flex-1 sm:flex-none">Save Changes</button>
+                     <button type="button" id="cancel-modal-btn" class="btn btn-secondary flex-1 sm:flex-none">Cancel</button>
+                </div>
+            </div>
+             <div class="modal-message font-mono mt-4 text-sm font-normal text-center"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- Constants ---
+        const LS_OWNED_INVENTORY_KEY = 'barbellCalcOwnedInventory_v5_90sPop';
+        const LS_BAR_WEIGHT_KEY = 'barbellCalcBarWeight_v5_90sPop';
+
+        // --- Global State ---
+        let barWeight = 45;
+        let defaultTotalOwnedInventory = { 45: 4, 25: 2, 10: 2, 5: 4, 2.5: 2 };
+        let totalOwnedInventory = { ...defaultTotalOwnedInventory };
+        let loadedPlates = [];
+
+        // --- DOM Elements --- (Assume all defined)
+        const targetWeightInput = document.getElementById('target-weight');
+        const calculatePlatesBtn = document.getElementById('calculate-plates-btn');
+        const totalWeightDisplay = document.getElementById('total-weight-display');
+        const calculatedWeightInfo = document.getElementById('calculated-weight-info');
+        const inventoryDisplay = document.getElementById('inventory-display');
+        const messageArea = document.getElementById('message-area');
+        const editInventoryBtn = document.getElementById('edit-inventory-btn');
+        const inventoryModal = document.getElementById('inventory-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const cancelModalBtn = document.getElementById('cancel-modal-btn');
+        const modalInventoryList = document.getElementById('modal-inventory-list');
+        const saveInventoryBtn = document.getElementById('save-inventory-btn');
+        const addPlateTypeBtn = document.getElementById('add-plate-type-btn');
+        const barWeightInput = document.getElementById('bar-weight-input');
+        const resetBarBtn = document.getElementById('reset-bar-btn');
+        const barSleeveLeft = document.getElementById('bar-sleeve-left');
+        const barSleeveRight = document.getElementById('bar-sleeve-right');
+
+
+        // --- Plate Styling Map (90s Pop Colors) ---
+        const plateStyles = {
+            45: { class: 'plate-45', color: 'white' }, // Purple
+            25: { class: 'plate-25', color: 'white' }, // Pink
+            10: { class: 'plate-10', color: 'black' }, // Yellow
+            5:  { class: 'plate-5', color: 'black' },  // Cyan
+            2.5:{ class: 'plate-2-5', color: 'black' }  // Lime
+        };
+
+        // --- Persistence Functions --- (Unchanged logic)
+        function loadSettings() { /* Loads from localStorage */ console.log('Loading settings...'); try{const sI=localStorage.getItem(LS_OWNED_INVENTORY_KEY); console.log('Raw inv:',sI); if(sI){const pI=JSON.parse(sI); if(typeof pI==='object'&&pI!==null){let vI=true; for(const k in pI){if(isNaN(Number(k))||!Number.isInteger(pI[k])||pI[k]<0){vI=false;break;}} if(vI){totalOwnedInventory=pI;console.log('Loaded inv:',totalOwnedInventory);}else{console.warn('Inv format invalid.');totalOwnedInventory={...defaultTotalOwnedInventory};}}else{console.warn('Inv type invalid.');totalOwnedInventory={...defaultTotalOwnedInventory};}}else{console.log('No saved inv.');totalOwnedInventory={...defaultTotalOwnedInventory};}}catch(e){console.error('Err load inv:',e);totalOwnedInventory={...defaultTotalOwnedInventory};} try{const sBW=localStorage.getItem(LS_BAR_WEIGHT_KEY); console.log('Raw bar:',sBW); if(sBW){const pW=parseFloat(sBW); if(!isNaN(pW)&&pW>0){barWeight=pW;console.log('Loaded bar:',barWeight);}else{console.warn('Inv bar wt.');barWeight=45;}}else{console.log('No saved bar wt.');barWeight=45;}}catch(e){console.error('Err load bar:',e);barWeight=45;} }
+        function saveSettings() { /* Saves to localStorage */ try{console.log('Saving inv:',totalOwnedInventory); console.log('Saving bar:',barWeight); localStorage.setItem(LS_OWNED_INVENTORY_KEY,JSON.stringify(totalOwnedInventory)); localStorage.setItem(LS_BAR_WEIGHT_KEY,barWeight.toString()); console.log('Settings saved.');}catch(e){console.error('Err save settings:',e);setMessage("Could not save.",true);} }
+
+        // --- Plate Styling Function ---
+        function getPlateStyle(weight) { /* Gets plate style or fallback */ const wN=Number(weight); if(plateStyles[wN]){return plateStyles[wN];}else{ /* Fallback */ console.warn(`No style for ${wN}lbs.`); const c=['bg-pink-500','bg-blue-500','bg-lime-500','bg-indigo-500','bg-teal-500']; const fC=c[Math.floor(wN%c.length)]; const h=Math.max(40,Math.min(110,40+(wN/45)*70)); const w=Math.max(10,Math.min(26,10+(wN/45)*16)); const fallbackTextColor = ['bg-lime-500'].includes(fC) ? 'black' : 'white'; return{class:`${fC} h-[${Math.round(h)}px] w-[${Math.round(w)}px]`,color: fallbackTextColor, height:`${Math.round(h)}px`,width:`${Math.round(w)}px`};} }
+
+        // --- Calculate Available Inventory ---
+        function calculateAvailableInventory() { /* Calculates plates not on bar */ const a={...totalOwnedInventory}; loadedPlates.forEach(pW=>{const wN=Number(pW); if(a[wN]){a[wN]--;} if(a[wN]<0)a[wN]=0;}); return a; }
+
+        // --- Core Logic Functions --- (Unchanged)
+        function calculatePlatesForWeight(targetWeight) { /* Calculates plates for weight */ clearMessages(); if(isNaN(targetWeight)||targetWeight<barWeight){setMessage("Target invalid.");return;} loadedPlates=[]; const wN=targetWeight-barWeight; if(wN<0)return; const wPS=wN/2; let rWPS=wPS; const pC=[]; const cAI=calculateAvailableInventory(); const tAC={...cAI}; const aPK=Object.keys(totalOwnedInventory).map(Number).sort((a,b)=>b-a); for(const pW of aPK){const pWN=Number(pW); if(pWN<=0)continue; while(tAC[pWN]>0&&rWPS>=pWN-0.001){pC.push(pWN);tAC[pWN]--;rWPS-=pWN;}} loadedPlates=pC.sort((a,b)=>b-a); updateBarbellVisual();updateTotalWeightDisplay();updateInventoryDisplay(); const aTW=calculateCurrentTotalWeight(); if(Math.abs(aTW-targetWeight)>0.01){calculatedWeightInfo.textContent=`Rounded: ${aTW} lbs`;}else{calculatedWeightInfo.textContent='';} }
+        function calculateCurrentTotalWeight() { /* Calculates current total */ return barWeight+loadedPlates.reduce((s,w)=>s+Number(w),0)*2; }
+        function addPlatePair(weight) { /* Adds plate pair to bar */ clearMessages(); const w=Number(weight); const avail=calculateAvailableInventory(); if(avail[w]>0){loadedPlates.push(w);loadedPlates.sort((a,b)=>b-a); updateBarbellVisual();updateTotalWeightDisplay();updateInventoryDisplay(); targetWeightInput.value='';calculatedWeightInfo.textContent='';}else{setMessage(`No more ${w} lbs.`);} }
+        function removePlatePair(weight, element) { /* Removes plate pair from bar */ clearMessages(); const w=Number(weight); const idx=loadedPlates.indexOf(w); if(idx!==-1){loadedPlates.splice(idx,1); element.remove(); const oS=document.getElementById(element.parentElement.id==='bar-sleeve-left'?'bar-sleeve-right':'bar-sleeve-left'); const oP=oS.querySelector(`.plate[data-weight="${w}"]`); if(oP)oP.remove(); else{console.warn("Sync issue.");updateBarbellVisual();} updateTotalWeightDisplay();updateInventoryDisplay(); targetWeightInput.value='';calculatedWeightInfo.textContent='';}else{console.warn(`Sync issue: ${w} not loaded.`);updateBarbellVisual();} }
+        function resetBar(showMsg = true) { /* Clears plates from bar */ clearMessages(); loadedPlates=[]; updateBarbellVisual();updateTotalWeightDisplay();updateInventoryDisplay(); targetWeightInput.value='';calculatedWeightInfo.textContent=''; if(showMsg){setMessage("Bar reset.",false);} }
+
+        // --- UI Update Functions ---
+        function updateBarbellVisual() { /* Updates bar visual */ barSleeveLeft.innerHTML='';barSleeveRight.innerHTML=''; loadedPlates.forEach(w=>{const s=getPlateStyle(w); function cPE(){const pD=document.createElement('div');pD.classList.add('plate'); s.class.split(' ').forEach(c=>{if(c)pD.classList.add(c);}); pD.style.color=s.color; /* Removed inline H/W application */ pD.textContent=w;pD.dataset.weight=w; pD.title=`${w} lbs - Click to remove`; pD.onclick=(e)=>removePlatePair(w,e.target); return pD;} barSleeveLeft.prepend(cPE()); barSleeveRight.prepend(cPE());}); }
+        function updateTotalWeightDisplay() { /* Updates total weight display */ totalWeightDisplay.textContent=`${calculateCurrentTotalWeight()} lbs`; }
+        function updateInventoryDisplay() { /* Updates available plates display */ inventoryDisplay.innerHTML=''; const availInv=calculateAvailableInventory(); const ownedKeys=Object.keys(totalOwnedInventory).map(Number).sort((a,b)=>b-a); let hasAvail=false; ownedKeys.forEach(w=>{const availCnt=availInv[w]??0; const style=getPlateStyle(w); const iI=document.createElement('div'); iI.classList.add('inventory-plate','w-20','text-center'); const pD=document.createElement('div'); pD.classList.add('inventory-plate-visual'); style.class.split(' ').forEach(c=>{if(c)pD.classList.add(c);}); pD.style.cssText=`color:${style.color};height:50px;width:50px;border-radius:50%;writing-mode:initial;text-orientation:initial;border-width: 2px; border-color: black;`; pD.textContent=w; pD.classList.add('font-mono', 'text-base', 'font-bold'); /* Mono number */ const cT=document.createElement('span'); cT.classList.add('text-xs','block','text-gray-700','whitespace-nowrap','mt-1'); cT.textContent=`(${availCnt} available)`; iI.appendChild(pD); iI.appendChild(cT); if(availCnt>0){hasAvail=true; iI.title=`Add ${w} lbs pair`; iI.onclick=()=>addPlatePair(w);}else{iI.classList.add('disabled'); iI.title=`No ${w} lbs available`;} inventoryDisplay.appendChild(iI);}); if(ownedKeys.length===0){inventoryDisplay.innerHTML='<p class="text-gray-600 text-sm italic font-sans">Inv empty.</p>';}else if(!hasAvail&&loadedPlates.length===0){inventoryDisplay.innerHTML='<p class="text-gray-600 text-sm italic font-sans">No plates avail.</p>';} }
+        function populateModalInventory() { /* Populates edit modal */ modalInventoryList.innerHTML=''; barWeightInput.value=barWeight; clearMessages(true); const w=Object.keys(totalOwnedInventory).map(Number).sort((a,b)=>a-b); w.forEach(wt=>addInventoryInputRow(wt,totalOwnedInventory[wt])); if(w.length===0){/* Add 'Add First' btn */} }
+        function addInventoryInputRow(weight, count) { /* Adds row to edit modal */ const d=document.createElement('div'); d.classList.add('flex','items-center','gap-2','mb-1'); const wI=document.createElement('input'); wI.type='number'; wI.value=weight; wI.min="0.1"; wI.step="0.1"; wI.classList.add('modal-plate-weight','input-base','w-1/3','text-sm'); wI.placeholder="Weight"; const cI=document.createElement('input'); cI.type='number'; cI.value=count; cI.min="0"; cI.classList.add('modal-plate-count','input-base','w-1/3','text-sm'); cI.placeholder="Pairs"; const rB=document.createElement('button'); rB.textContent='X'; rB.type='button'; rB.classList.add('remove-plate-btn','text-red-600','hover:text-red-800','font-bold','text-sm','ml-auto','px-1'); rB.onclick=()=>d.remove(); d.appendChild(wI); d.appendChild(cI); d.appendChild(rB); const aB=modalInventoryList.querySelector('button:not(.remove-plate-btn)'); if(aB){modalInventoryList.insertBefore(d,aB);}else{modalInventoryList.appendChild(d);} }
+        function saveInventoryChanges() { /* Validates and saves modal changes */ const newTotalOwnedInventory={}; let isValid=true; const seen=new Set(); clearMessages(true); let newBar=barWeight; const rows=modalInventoryList.querySelectorAll('.modal-content .flex'); console.log(`Found ${rows.length} inv rows.`); for(const row of rows){const wInput=row.querySelector('.modal-plate-weight'); const cInput=row.querySelector('.modal-plate-count'); if(!wInput||!cInput){console.log("Skip row");continue;} const w=parseFloat(wInput.value); const c=parseInt(cInput.value,10); console.log(`Processing: W=${w}, C=${c}`); if(isNaN(w)||w<=0||isNaN(c)||c<0){setMessage("Invalid input.",true,true);isValid=false;wInput.focus();break;} if(seen.has(w)){setMessage(`Duplicate: ${w} lbs.`,true,true);isValid=false;wInput.focus();break;} seen.add(w); newTotalOwnedInventory[w]=c;} if(isValid){newBar=parseFloat(barWeightInput.value); if(isNaN(newBar)||newBar<=0){setMessage("Invalid bar weight.",true,true);isValid=false;barWeightInput.focus();}} console.log('Validation done. Valid:',isValid); if(isValid){console.log('Saving...');totalOwnedInventory=newTotalOwnedInventory;barWeight=newBar;saveSettings(); updateTotalWeightDisplay();updateInventoryDisplay();inventoryModal.style.display='none';setMessage("Inventory updated.",false, false);}else{console.log('Not saving.');} }
+
+        // --- Utility Functions ---
+        function setMessage(msg, isError = true, isModal = false) { /* Displays messages */ const area=isModal?inventoryModal.querySelector('.modal-message'):messageArea; if(area){area.textContent=msg; area.className=`font-mono min-h-[1.25rem] text-center font-normal ${isModal?'modal-message mt-3 text-sm':'mb-4 text-base'} ${isError?'text-red-600':'text-green-700'}`;}}
+        function clearMessages(isModal = false) { /* Clears messages */ const area=isModal?inventoryModal.querySelector('.modal-message'):messageArea; if(area){area.textContent='';} if(!isModal)calculatedWeightInfo.textContent=''; }
+
+        // --- Event Listeners ---
+        calculatePlatesBtn.addEventListener('click', () => calculatePlatesForWeight(parseFloat(targetWeightInput.value)));
+        targetWeightInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); calculatePlatesForWeight(parseFloat(targetWeightInput.value)); }});
+        resetBarBtn.addEventListener('click', () => resetBar(true));
+        editInventoryBtn.addEventListener('click', () => { populateModalInventory(); inventoryModal.style.display = 'block'; });
+        closeModalBtn.addEventListener('click', () => { inventoryModal.style.display = 'none'; });
+        cancelModalBtn.addEventListener('click', () => { inventoryModal.style.display = 'none'; });
+        addPlateTypeBtn.addEventListener('click', () => { const btn = modalInventoryList.querySelector('button:not(.remove-plate-btn)'); if (btn) btn.remove(); addInventoryInputRow('', 0); });
+        saveInventoryBtn.addEventListener('click', saveInventoryChanges);
+        window.addEventListener('click', (event) => { if (event.target == inventoryModal) { inventoryModal.style.display = 'none'; }});
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings(); // Load saved settings first
+            updateBarbellVisual(); updateTotalWeightDisplay(); updateInventoryDisplay(); // Then update UI
+        });
+
+    </script>
+
+</body>
+</html>
